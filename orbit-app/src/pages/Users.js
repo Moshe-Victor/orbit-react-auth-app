@@ -7,6 +7,7 @@ import PageTitle from '../components/common/PageTitle';
 import { FetchContext } from '../context/FetchContext';
 import Card from '../components/common/Card';
 import defaultAvatar from './../images/defaultAvatar.png';
+// import DOMPurify from 'dompurify';
 
 const UserDetailLabel = ({ text }) => (
   <p className="mt-2 uppercase font-bold text-gray-500 text-xs">
@@ -32,7 +33,10 @@ const UserDetail = ({ user }) => (
           <UserDetailLabel text="Bio" />
           {user.bio ? (
             <div
-              dangerouslySetInnerHTML={{ __html: user.bio }}
+              dangerouslySetInnerHTML={{
+                __html: user.bio
+                //__html: DOMPurify.sanitize(user.bio)
+            }}
             />
           ) : (
             <p className="text-gray-500 italic">

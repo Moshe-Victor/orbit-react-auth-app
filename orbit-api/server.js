@@ -4,7 +4,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwtDecode = require('jwt-decode');
 const mongoose = require('mongoose');
-
+const jwt = require('express-jwt');
+const cookieParser = require('cookie-parser');
 const dashboardData = require('./data/dashboard');
 const User = require('./data/User');
 const InventoryItem = require('./data/InventoryItem');
@@ -20,6 +21,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 app.post('/api/authenticate', async (req, res) => {
   try {
@@ -48,6 +50,10 @@ app.post('/api/authenticate', async (req, res) => {
 
       const decodedToken = jwtDecode(token);
       const expiresAt = decodedToken.exp;
+
+      res.cookie('token', token, {
+        httpOnly: true,
+      })
 
       res.json({
         message: 'Authentication successful!',
@@ -116,6 +122,10 @@ app.post('/api/signup', async (req, res) => {
         role
       };
 
+      res.cookie('token', token, {
+        httpOnly: true,
+      })
+
       return res.json({
         message: 'User created!',
         token,
@@ -134,7 +144,45 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
-app.get('/api/dashboard-data', (req, res) =>
+const attachUser = (req, res,  next) => {
+
+  //const token = req.headers.authorization;
+    const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({message: 'Authentication invalid.'});
+  }
+
+  const decodedToken = jwtDecode(token);
+
+  if (!decodedToken) {
+    return res.status(401).json({
+      message: 'There was a problem authorizing the request.'
+    });
+  } else {
+    req.user = decodedToken;
+    next();
+  }
+};
+
+app.use(attachUser);
+
+const checkJwt = jwt({
+  secret: process.env.JWT_SECRET,
+  issuer: 'api.orbit',
+  audience: 'api.orbit',
+  getToken: req => req.cookies.token
+})
+
+const requireAdmin = (req, res, next) => {
+  const {role} = req.user;
+  if (role !== 'admin') {
+    return res.status(401).json({message: 'Insufficient rile'});
+  }
+  next();
+}
+
+app.get('/api/dashboard-data', checkJwt, (req, res) =>
   res.json(dashboardData)
 );
 
@@ -161,16 +209,28 @@ app.patch('/api/user-role', async (req, res) => {
   }
 });
 
-app.get('/api/inventory', async (req, res) => {
+app.get(
+    '/api/inventory',
+    checkJwt,
+    requireAdmin,
+    async (req, res) => {
   try {
-    const inventoryItems = await InventoryItem.find();
+    const { sub } = req.user;
+    // const input = Object.assign({}, req.body, {
+    //   user: sub
+    // });
+    const inventoryItems = await InventoryItem.find({user: sub});
     res.json(inventoryItems);
   } catch (err) {
     return res.status(400).json({ error: err });
   }
 });
 
-app.post('/api/inventory', async (req, res) => {
+app.post(
+    '/api/inventory',
+    checkJwt,
+    requireAdmin,
+    async (req, res) => {
   try {
     const inventoryItem = new InventoryItem(req.body);
     await inventoryItem.save();
@@ -186,10 +246,15 @@ app.post('/api/inventory', async (req, res) => {
   }
 });
 
-app.delete('/api/inventory/:id', async (req, res) => {
+app.delete(
+    '/api/inventory/:id',
+    checkJwt,
+    requireAdmin,
+    async (req, res) => {
   try {
+    const { sub } = req.user;
     const deletedItem = await InventoryItem.findOneAndDelete(
-      { _id: req.params.id }
+      { _id: req.params.id, user: sub }
     );
     res.status(201).json({
       message: 'Inventory item deleted!',

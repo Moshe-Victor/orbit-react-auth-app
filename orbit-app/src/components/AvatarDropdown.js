@@ -75,12 +75,13 @@ const AvatarDropdown = () => {
         onClick={() => setDropdownOpen(!dropdownOpen)}
       >
         <img
-          src={authState.userInfo.avatar || defaultAvatar}
+          // src={authState.userInfo.avatar || defaultAvatar}
+            src={defaultAvatar}
           className="rounded-full w-6 border-2 border-white"
           alt="Avatar"
         />
         <div className="px-3">
-          <p className="text-white">Ryan</p>
+          <p className="text-white">{authState.userInfo.firstName}</p>
         </div>
         <div className="mr-1 text-white">
           <FontAwesomeIcon icon={faCaretDown} />

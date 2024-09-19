@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useContext, useState} from 'react';
 import { Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import Card from '../components/common/Card';
@@ -10,6 +10,9 @@ import FormError from './../components/FormError';
 import GradientBar from './../components/common/GradientBar';
 import GradientButton from '../components/common/GradientButton';
 import logo from './../images/logo.png';
+import {publicFetch} from "../util/fetch";
+import {Redirect} from "react-router";
+import {AuthContext} from "../context/AuthContext";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string().required('Email is required'),
@@ -17,14 +20,29 @@ const LoginSchema = Yup.object().shape({
 });
 
 const Login = () => {
+  const authContext = useContext(AuthContext);
   const [loginSuccess, setLoginSuccess] = useState();
   const [loginError, setLoginError] = useState();
   const [loginLoading, setLoginLoading] = useState(false);
+  const [redirectOnLogin, setRedirectOnLogin] = useState(false);
 
   const submitCredentials = async credentials => {
     try {
       setLoginLoading(true);
+      const {data} = await publicFetch.post('authenticate', credentials);
+
+      authContext.setAuthState(data);
+
+      setLoginSuccess(data.message);
+      setLoginError('');
+
+      setTimeout(()=> {
+        setRedirectOnLogin(true);
+      }, 700);
+
+      //console.log(data);
     } catch (error) {
+      console.log(error.response.data);
       setLoginLoading(false);
       const { data } = error.response;
       setLoginError(data.message);
@@ -34,6 +52,7 @@ const Login = () => {
 
   return (
     <>
+      {redirectOnLogin && <Redirect to="/dashboard" />}
       <section className="w-full sm:w-1/2 h-screen m-auto p-8 sm:pt-10">
         <GradientBar />
         <Card>

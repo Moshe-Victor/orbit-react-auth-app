@@ -14,10 +14,22 @@ import {
 import { FetchContext } from '../context/FetchContext';
 import { formatCurrency } from './../util';
 import DashboardChart from './../components/DashboardChart';
+import {AuthContext} from "../context/AuthContext";
 
 const Dashboard = () => {
   const fetchContext = useContext(FetchContext);
   const [dashboardData, setDashboardData] = useState();
+
+  // const authContext = useContext(AuthContext);
+  // useEffect(() => {
+  //   const checkAuth = () => {
+  //     if (!authContext.isAuthenticated()) {return;}
+  //   };
+  //
+  //   checkAuth();
+  //
+  // }, []);
+
 
   useEffect(() => {
     const getDashboardData = async () => {
